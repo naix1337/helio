@@ -8,6 +8,7 @@ import { metricsRouter } from './routes/metrics.js';
 import { alertsRouter } from './routes/alerts.js';
 import { nodesRouter } from './routes/nodes.js';
 import { statusRouter } from './routes/status.js';
+import { settingsRouter } from './routes/settings.js';
 import { collectSnapshot } from './collectors/systemCollector.js';
 import { collectContainers } from './collectors/dockerCollector.js';
 import { queries } from './db/index.js';
@@ -24,6 +25,7 @@ app.use('/api/metrics', metricsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/nodes', nodesRouter);
 app.use('/api/status', statusRouter);
+app.use('/api/settings', settingsRouter);
 
 if (IS_PROD) {
   const DIST = path.join(__dirname, '../../frontend/dist');
