@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { attachWebSocket, wsBroadcast } from './ws/metricsWs.js';
 import { metricsRouter } from './routes/metrics.js';
 import { alertsRouter } from './routes/alerts.js';
@@ -27,7 +26,6 @@ app.use('/api/nodes', nodesRouter);
 app.use('/api/status', statusRouter);
 
 if (IS_PROD) {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const DIST = path.join(__dirname, '../../frontend/dist');
   app.use(express.static(DIST));
   app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
