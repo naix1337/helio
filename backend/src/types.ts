@@ -108,3 +108,19 @@ export interface AppSettings {
   dashboard_show_ram: string;
   dashboard_show_nodes: string;
 }
+
+export type PingType = 'tcp' | 'http' | 'https';
+
+export interface PingRequest {
+  type: PingType;
+  host: string;
+  port: number;
+  path?: string;
+}
+
+export interface PingResult {
+  reachable: boolean;
+  latency_ms: number;
+  status?: number;
+  error?: string;
+}
