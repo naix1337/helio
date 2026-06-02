@@ -7,6 +7,7 @@ import { Nodes } from './pages/Nodes.tsx';
 import { Containers } from './pages/Containers.tsx';
 import { Alerts } from './pages/Alerts.tsx';
 import { StatusPage } from './pages/StatusPage.tsx';
+import { Settings } from './pages/Settings.tsx';
 
 function AppLayout() {
   return (
@@ -17,10 +18,6 @@ function AppLayout() {
       </main>
     </div>
   );
-}
-
-function Settings() {
-  return <div style={{ padding: '24px' }}><h1>Einstellungen</h1><p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>Demnächst verfügbar.</p></div>;
 }
 
 export default function App() {
