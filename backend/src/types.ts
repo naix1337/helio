@@ -98,3 +98,13 @@ export interface AlertFireEvent {
   value: number;
   triggeredAt: number;
 }
+
+export interface AppSettings {
+  app_title: string;
+  status_title: string;
+  status_subtitle: string;
+  status_show_uptime: string;   // 'true' | 'false'
+  dashboard_show_cpu: string;
+  dashboard_show_ram: string;
+  dashboard_show_nodes: string;
+}

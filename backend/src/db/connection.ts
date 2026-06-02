@@ -72,5 +72,19 @@ function applySchema(db: Database.Database): void {
       resolved_at  INTEGER,
       peak_value   REAL NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
+    INSERT OR IGNORE INTO settings (key, value) VALUES
+      ('app_title',            'Helio'),
+      ('status_title',         'System Status'),
+      ('status_subtitle',      'Echtzeit-Überwachung aller Systeme'),
+      ('status_show_uptime',   'true'),
+      ('dashboard_show_cpu',   'true'),
+      ('dashboard_show_ram',   'true'),
+      ('dashboard_show_nodes', 'true');
   `);
 }

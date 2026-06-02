@@ -44,6 +44,14 @@ export function buildQueries(db: Database.Database) {
     'SELECT * FROM alert_events WHERE alert_id = ? ORDER BY triggered_at DESC LIMIT 1'
   );
 
+  const stmtGetSettings = db.prepare<[], { key: string; value: string }>(
+    'SELECT key, value FROM settings'
+  );
+
+  const stmtSetSetting = db.prepare<{ key: string; value: string }>(
+    'INSERT INTO settings (key, value) VALUES (@key, @value) ON CONFLICT(key) DO UPDATE SET value = @value'
+  );
+
   return {
     insertMetric(snap: SystemSnapshot): void {
       stmtInsertMetric.run({
@@ -95,6 +103,15 @@ export function buildQueries(db: Database.Database) {
 
     getLatestAlertEvent(alertId: number): AlertEvent | undefined {
       return stmtLatestEvent.get(alertId) as AlertEvent | undefined;
+    },
+
+    getSettings(): Record<string, string> {
+      const rows = stmtGetSettings.all() as { key: string; value: string }[];
+      return Object.fromEntries(rows.map(r => [r.key, r.value]));
+    },
+
+    setSetting(key: string, value: string): void {
+      stmtSetSetting.run({ key, value });
     },
   };
 }
