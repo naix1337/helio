@@ -37,6 +37,8 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const faqRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Nav scroll state
   useEffect(() => {
@@ -56,7 +58,7 @@ export function LandingPage() {
   // Scroll reveal
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const reveals = Array.from(document.querySelectorAll<HTMLElement>('.reveal'));
+    const reveals = Array.from((rootRef.current ?? document).querySelectorAll<HTMLElement>('.reveal'));
     const show = (el: HTMLElement) => el.classList.add('in');
     if (reduce) { reveals.forEach(show); return; }
 
@@ -86,7 +88,7 @@ export function LandingPage() {
   // Animated counters
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const counters = Array.from(document.querySelectorAll<HTMLElement>('[data-count]'));
+    const counters = Array.from((rootRef.current ?? document).querySelectorAll<HTMLElement>('[data-count]'));
     const setFinal = (el: HTMLElement) => {
       const d = parseInt(el.dataset.decimals ?? '0', 10);
       el.textContent = parseFloat(el.dataset.count!).toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -118,9 +120,12 @@ export function LandingPage() {
     }
   }, []);
 
+  // Clear copy timer on unmount
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
+
   // Feature card pointer glow
   useEffect(() => {
-    const cards = Array.from(document.querySelectorAll<HTMLElement>('.feat-card'));
+    const cards = Array.from((rootRef.current ?? document).querySelectorAll<HTMLElement>('.feat-card'));
     const handlers: [HTMLElement, (e: PointerEvent) => void][] = cards.map(c => {
       const h = (e: PointerEvent) => {
         const r = c.getBoundingClientRect();
@@ -154,7 +159,7 @@ export function LandingPage() {
       setOpenFaq(i);
       el.style.height = el.scrollHeight + 'px';
       el.addEventListener('transitionend', function te() {
-        if (openFaq !== i) el.style.height = 'auto';
+        el.style.height = 'auto';
         el.removeEventListener('transitionend', te);
       });
     }
@@ -166,12 +171,13 @@ export function LandingPage() {
       const ta = document.createElement('textarea'); ta.value = text;
       document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
     }
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1600);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 1600);
   };
 
   return (
-    <>
+    <div ref={rootRef}>
       {/* NAVBAR */}
       <header className={`nav${navScrolled ? ' scrolled' : ''}`}>
         <div className="container nav-inner">
@@ -581,6 +587,6 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
