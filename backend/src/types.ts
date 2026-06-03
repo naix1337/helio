@@ -124,3 +124,19 @@ export interface PingResult {
   status?: number;
   error?: string;
 }
+
+export type UserRole = 'admin' | 'editor' | 'viewer';
+
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: UserRole;
+  created_at: number;
+  last_login: number | null;
+}
+
+export interface AuthToken {
+  userId: number;
+  role: UserRole;
+}
