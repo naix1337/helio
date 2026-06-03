@@ -44,12 +44,56 @@ export function buildQueries(db: Database.Database) {
     'SELECT * FROM alert_events WHERE alert_id = ? ORDER BY triggered_at DESC LIMIT 1'
   );
 
+  const stmtRecentEvents = db.prepare<[number], AlertEvent & { alert_name: string; alert_metric: string }>(
+    `SELECT ae.*, a.name as alert_name, a.metric as alert_metric
+     FROM alert_events ae
+     JOIN alerts a ON ae.alert_id = a.id
+     ORDER BY ae.triggered_at DESC
+     LIMIT ?`
+  );
+
   const stmtGetSettings = db.prepare<[], { key: string; value: string }>(
     'SELECT key, value FROM settings'
   );
 
   const stmtSetSetting = db.prepare<{ key: string; value: string }>(
     'INSERT INTO settings (key, value) VALUES (@key, @value) ON CONFLICT(key) DO UPDATE SET value = @value'
+  );
+
+  const stmtCreateUser = db.prepare<{
+    email: string; name: string; password_hash: string; role: string;
+  }>(`INSERT INTO users (email, name, password_hash, role)
+      VALUES (@email, @name, @password_hash, @role)`);
+
+  const stmtGetUserByEmail = db.prepare<[string], {
+    id: number; email: string; name: string; password_hash: string;
+    role: string; created_at: number; last_login: number | null;
+  }>('SELECT * FROM users WHERE email = ?');
+
+  const stmtGetUserById = db.prepare<[number], {
+    id: number; email: string; name: string; password_hash: string;
+    role: string; created_at: number; last_login: number | null;
+  }>('SELECT * FROM users WHERE id = ?');
+
+  const stmtCountUsers = db.prepare<[], { cnt: number }>(
+    'SELECT COUNT(*) as cnt FROM users'
+  );
+
+  const stmtGetAllUsers = db.prepare<[], {
+    id: number; email: string; name: string;
+    role: string; created_at: number; last_login: number | null;
+  }>('SELECT id, email, name, role, created_at, last_login FROM users');
+
+  const stmtUpdateUserRole = db.prepare<{ id: number; role: string }>(
+    'UPDATE users SET role = @role WHERE id = @id'
+  );
+
+  const stmtUpdateLastLogin = db.prepare<[number]>(
+    'UPDATE users SET last_login = unixepoch() WHERE id = ?'
+  );
+
+  const stmtDeleteUser = db.prepare<[number]>(
+    'DELETE FROM users WHERE id = ?'
   );
 
   return {
@@ -105,6 +149,10 @@ export function buildQueries(db: Database.Database) {
       return stmtLatestEvent.get(alertId) as AlertEvent | undefined;
     },
 
+    getRecentAlertEvents(limit = 50): (AlertEvent & { alert_name: string; alert_metric: string })[] {
+      return stmtRecentEvents.all(limit) as (AlertEvent & { alert_name: string; alert_metric: string })[];
+    },
+
     getSettings(): Record<string, string> {
       const rows = stmtGetSettings.all() as { key: string; value: string }[];
       return Object.fromEntries(rows.map(r => [r.key, r.value]));
@@ -112,6 +160,40 @@ export function buildQueries(db: Database.Database) {
 
     setSetting(key: string, value: string): void {
       stmtSetSetting.run({ key, value });
+    },
+
+    createUser(email: string, name: string, passwordHash: string, role: string): number {
+      const result = stmtCreateUser.run({ email, name, password_hash: passwordHash, role });
+      return Number(result.lastInsertRowid);
+    },
+
+    getUserByEmail(email: string) {
+      return stmtGetUserByEmail.get(email) ?? undefined;
+    },
+
+    getUserById(id: number) {
+      return stmtGetUserById.get(id) ?? undefined;
+    },
+
+    countUsers(): number {
+      const row = stmtCountUsers.get() as { cnt: number } | undefined;
+      return row?.cnt ?? 0;
+    },
+
+    getAllUsers() {
+      return stmtGetAllUsers.all();
+    },
+
+    updateUserRole(id: number, role: string): void {
+      stmtUpdateUserRole.run({ id, role });
+    },
+
+    updateLastLogin(id: number): void {
+      stmtUpdateLastLogin.run(id);
+    },
+
+    deleteUser(id: number): void {
+      stmtDeleteUser.run(id);
     },
   };
 }

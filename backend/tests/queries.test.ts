@@ -28,6 +28,19 @@ function buildTestDb(): Database.Database {
       triggered_at INTEGER NOT NULL, resolved_at INTEGER,
       peak_value REAL NOT NULL
     );
+    CREATE TABLE settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'viewer',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      last_login INTEGER
+    );
   `);
   return db;
 }
@@ -88,6 +101,99 @@ describe('alert queries', () => {
     const ev = getLatestAlertEvent(alertId);
     expect(ev).toBeDefined();
     expect(ev!.peak_value).toBe(95);
+    db.close();
+  });
+});
+
+describe('user queries', () => {
+  function buildUserDb(): Database.Database {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec(`
+      CREATE TABLE metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts INTEGER NOT NULL, cpu REAL NOT NULL,
+        mem_used INTEGER NOT NULL, mem_total INTEGER NOT NULL,
+        disk_json TEXT NOT NULL, net_json TEXT NOT NULL
+      );
+      CREATE TABLE alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL, metric TEXT NOT NULL, operator TEXT NOT NULL,
+        threshold REAL NOT NULL, channel TEXT NOT NULL, target TEXT NOT NULL,
+        cooldown INTEGER DEFAULT 15, enabled INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (unixepoch())
+      );
+      CREATE TABLE alert_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        alert_id INTEGER REFERENCES alerts(id) ON DELETE CASCADE,
+        triggered_at INTEGER NOT NULL, resolved_at INTEGER,
+        peak_value REAL NOT NULL
+      );
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'viewer',
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        last_login INTEGER
+      );
+    `);
+    return db;
+  }
+
+  it('creates a user and retrieves by email', () => {
+    const db = buildUserDb();
+    const q = buildQueries(db);
+    q.createUser('test@example.com', 'Test User', 'hash123', 'admin');
+    const user = q.getUserByEmail('test@example.com');
+    expect(user).toBeDefined();
+    expect(user!.name).toBe('Test User');
+    expect(user!.role).toBe('admin');
+    db.close();
+  });
+
+  it('countUsers returns 0 when empty and 1 after insert', () => {
+    const db = buildUserDb();
+    const q = buildQueries(db);
+    expect(q.countUsers()).toBe(0);
+    q.createUser('a@b.com', 'A', 'hash', 'viewer');
+    expect(q.countUsers()).toBe(1);
+    db.close();
+  });
+
+  it('getAllUsers excludes password_hash', () => {
+    const db = buildUserDb();
+    const q = buildQueries(db);
+    q.createUser('a@b.com', 'A', 'secret', 'editor');
+    const users = q.getAllUsers();
+    expect(users).toHaveLength(1);
+    expect((users[0] as Record<string, unknown>).password_hash).toBeUndefined();
+    db.close();
+  });
+
+  it('updateUserRole changes role', () => {
+    const db = buildUserDb();
+    const q = buildQueries(db);
+    q.createUser('a@b.com', 'A', 'h', 'viewer');
+    const user = q.getUserByEmail('a@b.com')!;
+    q.updateUserRole(user.id, 'editor');
+    const updated = q.getUserById(user.id)!;
+    expect(updated.role).toBe('editor');
+    db.close();
+  });
+
+  it('deleteUser removes the row', () => {
+    const db = buildUserDb();
+    const q = buildQueries(db);
+    q.createUser('a@b.com', 'A', 'h', 'viewer');
+    const user = q.getUserByEmail('a@b.com')!;
+    q.deleteUser(user.id);
+    expect(q.countUsers()).toBe(0);
     db.close();
   });
 });
