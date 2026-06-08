@@ -14,7 +14,12 @@ const VALID_ROLES: UserRole[] = ['admin', 'editor', 'viewer'];
 teamRouter.get('/', (_req, res) => {
   try {
     const users = queries.getAllUsers();
-    res.json(users);
+    // Explicit field projection: getAllUsers() already excludes password_hash at the
+    // SQL level, but we project here too so any future schema change can't leak it.
+    const safe = users.map(({ id, name, email, role, created_at, last_login }) => ({
+      id, name, email, role, created_at, last_login,
+    }));
+    res.json(safe);
   } catch (err) {
     console.error('[team/list] error:', err);
     res.status(500).json({ error: 'Internal server error' });
