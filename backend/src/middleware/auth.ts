@@ -1,8 +1,8 @@
 // helio-app/backend/src/middleware/auth.ts
 import { randomBytes } from 'crypto';
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-import type { UserRole } from '../types.js';
+import type { AuthToken, UserRole } from '../types.js';
 
 let JWT_SECRET: string;
 if (process.env.JWT_SECRET) {
@@ -16,21 +16,20 @@ if (process.env.JWT_SECRET) {
   );
 }
 
-export { JWT_SECRET };
+// ---------------------------------------------------------------------------
+// signToken — sign a JWT for the given user payload (JWT_SECRET stays private)
+// ---------------------------------------------------------------------------
+export function signToken(payload: { userId: number; email: string; role: UserRole }): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+}
 
 // ---------------------------------------------------------------------------
 // Module augmentation — extend Express Request so req.user is typed
 // ---------------------------------------------------------------------------
-export interface AuthUser {
-  userId: number;
-  email: string;
-  role: UserRole;
-}
-
 declare global {
   namespace Express {
     interface Request {
-      user?: AuthUser;
+      user?: AuthToken;
     }
   }
 }
@@ -58,7 +57,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const token = authHeader.slice(7); // strip "Bearer "
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as AuthUser;
+    const payload = jwt.verify(token, JWT_SECRET) as AuthToken;
 
     // Basic shape validation
     if (
@@ -86,7 +85,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 // requireRole — factory that enforces a minimum role level.
 // Must be placed AFTER requireAuth in the middleware chain.
 // ---------------------------------------------------------------------------
-export function requireRole(minimumRole: UserRole) {
+export function requireRole(minimumRole: UserRole): RequestHandler {
   return function roleGuard(req: Request, res: Response, next: NextFunction): void {
     const user = req.user;
 

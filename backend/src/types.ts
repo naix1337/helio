@@ -138,5 +138,6 @@ export interface User {
 
 export interface AuthToken {
   userId: number;
+  email: string;
   role: UserRole;
 }
