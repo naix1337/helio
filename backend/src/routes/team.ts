@@ -12,8 +12,13 @@ const VALID_ROLES: UserRole[] = ['admin', 'editor', 'viewer'];
 // GET /api/team — list all users (admin-only, enforced at mount point)
 // ---------------------------------------------------------------------------
 teamRouter.get('/', (_req, res) => {
-  const users = queries.getAllUsers();
-  res.json(users);
+  try {
+    const users = queries.getAllUsers();
+    res.json(users);
+  } catch (err) {
+    console.error('[team/list] error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // ---------------------------------------------------------------------------
