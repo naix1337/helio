@@ -24,6 +24,26 @@ export function signToken(payload: { userId: number; email: string; role: UserRo
 }
 
 // ---------------------------------------------------------------------------
+// verifyToken — verify a raw token string and return the payload, or null.
+// Used by non-HTTP channels (WebSocket upgrade) that can't run requireAuth.
+// ---------------------------------------------------------------------------
+export function verifyToken(token: string): AuthToken | null {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as AuthToken;
+    if (
+      typeof payload.userId !== 'number' ||
+      typeof payload.email !== 'string' ||
+      !['admin', 'editor', 'viewer'].includes(payload.role)
+    ) {
+      return null;
+    }
+    return { userId: payload.userId, email: payload.email, role: payload.role };
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Module augmentation — extend Express Request so req.user is typed
 // ---------------------------------------------------------------------------
 declare global {

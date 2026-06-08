@@ -2,7 +2,9 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import type { Server } from 'http';
+import { URL } from 'url';
 import type { WsMessage } from '../types.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const clients = new Set<WebSocket>();
 let wss: WebSocketServer | null = null;
@@ -11,11 +13,22 @@ export function attachWebSocket(server: Server): void {
   wss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', (req: IncomingMessage, socket, head) => {
-    const url = req.url ?? '';
-    if (!url.startsWith('/ws')) {
+    const raw = req.url ?? '';
+    if (!raw.startsWith('/ws')) {
       socket.destroy();
       return;
     }
+
+    // Validate JWT passed as ?token=<jwt> (browsers cannot send custom headers)
+    const base = `http://${req.headers.host ?? 'localhost'}`;
+    const { searchParams } = new URL(raw, base);
+    const token = searchParams.get('token') ?? '';
+    if (!verifyToken(token)) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
     wss!.handleUpgrade(req, socket, head, (ws) => {
       wss!.emit('connection', ws, req);
     });
