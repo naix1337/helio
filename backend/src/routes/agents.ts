@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import { Router } from 'express';
 import { queries } from '../db/index.js';
+import { requireRole } from '../middleware/auth.js';
 import type { AgentMetricRow } from '../db/queries.js';
 
 export const agentsRouter = Router();
@@ -189,7 +190,7 @@ agentsRouter.delete('/:id', (req, res) => {
 
 // ── POST /tokens — generate a new agent token ─────────────────────────────────
 
-agentsRouter.post('/tokens', (req, res) => {
+agentsRouter.post('/tokens', requireRole('admin'), (req, res) => {
   const { label } = req.body as { label?: string };
   const resolvedLabel = (typeof label === 'string' && label.trim()) ? label.trim() : null;
 
@@ -204,7 +205,7 @@ agentsRouter.post('/tokens', (req, res) => {
 
 // ── DELETE /tokens/:tokenId ───────────────────────────────────────────────────
 
-agentsRouter.delete('/tokens/:tokenId', (req, res) => {
+agentsRouter.delete('/tokens/:tokenId', requireRole('admin'), (req, res) => {
   queries.deleteAgentToken(req.params.tokenId);
   res.status(204).send();
 });
