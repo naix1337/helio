@@ -80,7 +80,9 @@ describe('runMigrations (real migration files)', () => {
     expect(names).toContain('001_initial.sql');
     expect(names).toContain('002_extend_nodes.sql');
     expect(names).toContain('003_add_users.sql');
-    expect(log).toHaveLength(3);
+    expect(names).toContain('004_agents.sql');
+    expect(names).toContain('005_ping.sql');
+    expect(log).toHaveLength(5);
     // applied_at should be a reasonable unix timestamp
     expect(log[0].applied_at).toBeGreaterThan(1_700_000_000);
   });
@@ -110,10 +112,10 @@ describe('runMigrations (real migration files)', () => {
     expect(() => runMigrations(db)).not.toThrow();
   });
 
-  it('is idempotent: migrations_log still has exactly 3 entries after second run', () => {
+  it('is idempotent: migrations_log still has exactly 5 entries after second run', () => {
     runMigrations(db);
     runMigrations(db);
-    expect(migrationLog(db)).toHaveLength(3);
+    expect(migrationLog(db)).toHaveLength(5);
   });
 });
 

@@ -41,6 +41,57 @@ function buildTestDb(): Database.Database {
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       last_login INTEGER
     );
+    CREATE TABLE agent_tokens (
+      id TEXT PRIMARY KEY,
+      label TEXT,
+      token_hash TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL,
+      last_used INTEGER
+    );
+    CREATE TABLE agents (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      tags TEXT NOT NULL DEFAULT '[]',
+      token_id TEXT REFERENCES agent_tokens(id) ON DELETE SET NULL,
+      version TEXT,
+      first_seen INTEGER NOT NULL,
+      last_seen INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'offline',
+      os_info TEXT
+    );
+    CREATE TABLE agent_metrics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      ts INTEGER NOT NULL,
+      cpu_usage REAL,
+      mem_used INTEGER,
+      mem_total INTEGER,
+      disk_json TEXT,
+      net_json TEXT,
+      docker_json TEXT
+    );
+    CREATE TABLE ping_targets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      host TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'icmp',
+      port INTEGER,
+      interval_ms INTEGER NOT NULL DEFAULT 10000,
+      timeout_ms INTEGER NOT NULL DEFAULT 3000,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      tags TEXT NOT NULL DEFAULT '[]'
+    );
+    CREATE TABLE ping_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      target_id INTEGER NOT NULL REFERENCES ping_targets(id) ON DELETE CASCADE,
+      ts INTEGER NOT NULL,
+      success INTEGER NOT NULL,
+      latency_ms REAL,
+      status_code INTEGER,
+      error TEXT,
+      icmp_fallback INTEGER NOT NULL DEFAULT 0
+    );
   `);
   return db;
 }
@@ -141,6 +192,57 @@ describe('user queries', () => {
         role TEXT NOT NULL DEFAULT 'viewer',
         created_at INTEGER NOT NULL DEFAULT (unixepoch()),
         last_login INTEGER
+      );
+      CREATE TABLE agent_tokens (
+        id TEXT PRIMARY KEY,
+        label TEXT,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at INTEGER NOT NULL,
+        last_used INTEGER
+      );
+      CREATE TABLE agents (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        tags TEXT NOT NULL DEFAULT '[]',
+        token_id TEXT REFERENCES agent_tokens(id) ON DELETE SET NULL,
+        version TEXT,
+        first_seen INTEGER NOT NULL,
+        last_seen INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'offline',
+        os_info TEXT
+      );
+      CREATE TABLE agent_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        ts INTEGER NOT NULL,
+        cpu_usage REAL,
+        mem_used INTEGER,
+        mem_total INTEGER,
+        disk_json TEXT,
+        net_json TEXT,
+        docker_json TEXT
+      );
+      CREATE TABLE ping_targets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        host TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'icmp',
+        port INTEGER,
+        interval_ms INTEGER NOT NULL DEFAULT 10000,
+        timeout_ms INTEGER NOT NULL DEFAULT 3000,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        tags TEXT NOT NULL DEFAULT '[]'
+      );
+      CREATE TABLE ping_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        target_id INTEGER NOT NULL REFERENCES ping_targets(id) ON DELETE CASCADE,
+        ts INTEGER NOT NULL,
+        success INTEGER NOT NULL,
+        latency_ms REAL,
+        status_code INTEGER,
+        error TEXT,
+        icmp_fallback INTEGER NOT NULL DEFAULT 0
       );
     `);
     return db;
