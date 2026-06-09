@@ -68,10 +68,10 @@ function tcpProbe(
 
 export class PingCollector {
   private intervals = new Map<number, NodeJS.Timeout>();
-  private broadcast: (msg: object) => void;
+  private broadcast: (msg: Record<string, unknown>) => void;
   private queries: Queries;
 
-  constructor(db: Queries, broadcast: (msg: object) => void) {
+  constructor(db: Queries, broadcast: (msg: Record<string, unknown>) => void) {
     this.queries = db;
     this.broadcast = broadcast;
   }

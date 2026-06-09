@@ -4,16 +4,19 @@ import cors from 'cors';
 import http from 'http';
 import path from 'path';
 import { attachWebSocket, wsBroadcast } from './ws/metricsWs.js';
+import { attachAgentWebSocket } from './ws/agentWs.js';
 import { authRouter } from './routes/auth.js';
 import { metricsRouter } from './routes/metrics.js';
 import { alertsRouter } from './routes/alerts.js';
 import { nodesRouter } from './routes/nodes.js';
 import { statusRouter } from './routes/status.js';
 import { settingsRouter } from './routes/settings.js';
-import { pingRouter } from './routes/ping.js';
+import { pingRouter, setPingCollector } from './routes/ping.js';
+import { agentsRouter } from './routes/agents.js';
 import { teamRouter } from './routes/team.js';
 import { collectSnapshot } from './collectors/systemCollector.js';
 import { collectContainers } from './collectors/dockerCollector.js';
+import { PingCollector } from './collectors/pingCollector.js';
 import { queries } from './db/index.js';
 import { evaluateAlerts, setAlertBroadcast } from './alertEngine.js';
 import { requireAuth, requireRole } from './middleware/auth.js';
@@ -38,6 +41,7 @@ app.use('/api/metrics', metricsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/nodes', nodesRouter);
 app.use('/api/ping', pingRouter);
+app.use('/api/agents', agentsRouter);
 app.use('/api/team', requireRole('admin'), teamRouter);
 
 if (IS_PROD) {
@@ -47,8 +51,13 @@ if (IS_PROD) {
 }
 
 const server = http.createServer(app);
+// Agent WS must be registered before browser WS (order matters for upgrade handler)
+attachAgentWebSocket(server);
 attachWebSocket(server);
 setAlertBroadcast(wsBroadcast);
+
+const pingCollector = new PingCollector(queries, wsBroadcast);
+setPingCollector(pingCollector);
 
 async function collect(): Promise<void> {
   try {
@@ -63,6 +72,7 @@ async function collect(): Promise<void> {
 
 server.listen(PORT, async () => {
   console.log(`[Helio] Backend running on http://localhost:${PORT}`);
+  pingCollector.start();
   await collect();
   setInterval(collect, 5_000);
 });
