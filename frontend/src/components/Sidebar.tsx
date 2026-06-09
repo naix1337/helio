@@ -3,9 +3,11 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Server, Box, Bell, Activity,
-  Settings, Users, LogOut,
+  Settings, Users, LogOut, Cpu, Radar,
 } from 'lucide-react';
 import { useMetricsStore } from '../store/metricsStore.ts';
+import { useAgentsStore } from '../store/agentsStore.ts';
+import { usePingStore } from '../store/pingStore.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 
 const NAV_ITEMS = [
@@ -14,6 +16,8 @@ const NAV_ITEMS = [
   { icon: Box,             label: 'Container', to: '/dashboard/containers' },
   { icon: Bell,            label: 'Alerts',    to: '/dashboard/alerts' },
   { icon: Activity,        label: 'Status-Page', to: '/status' },
+  { icon: Cpu,             label: 'Agents',    to: '/dashboard/agents' },
+  { icon: Radar,           label: 'Ping Monitor', to: '/dashboard/ping' },
 ];
 
 const SYSTEM_ITEMS = [
@@ -36,6 +40,9 @@ export function Sidebar() {
   const currentUser = useAuth((s) => s.currentUser);
   const logout = useAuth((s) => s.logout);
   const navigate = useNavigate();
+
+  const agentOnlineCount = useAgentsStore((s) => s.agents.filter((a) => a.status === 'online').length);
+  const pingAlertCount = usePingStore((s) => s.targets.filter((t) => t.status === 'down' || t.status === 'degraded').length);
 
   const activeStyle: React.CSSProperties = {
     background: 'var(--primary-soft)',
@@ -88,17 +95,33 @@ export function Sidebar() {
         <WsIndicator />
       </div>
 
-      {NAV_ITEMS.map(({ icon: Icon, label, to }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/dashboard'}
-          style={({ isActive }) => ({ ...itemStyle, ...(isActive ? activeStyle : {}) })}
-        >
-          <Icon size={16} />
-          {label}
-        </NavLink>
-      ))}
+      {NAV_ITEMS.map(({ icon: Icon, label, to }) => {
+        const badge =
+          to === '/dashboard/agents' && agentOnlineCount > 0 ? agentOnlineCount :
+          to === '/dashboard/ping' && pingAlertCount > 0 ? pingAlertCount :
+          null;
+        const badgeColor = to === '/dashboard/ping' ? 'var(--danger, #ef4444)' : 'var(--ok)';
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/dashboard'}
+            style={({ isActive }) => ({ ...itemStyle, ...(isActive ? activeStyle : {}) })}
+          >
+            <Icon size={16} />
+            <span style={{ flex: 1 }}>{label}</span>
+            {badge !== null && (
+              <span style={{
+                fontSize: '0.65rem', fontWeight: 600,
+                padding: '1px 5px', borderRadius: '10px',
+                background: badgeColor, color: '#fff',
+                fontFamily: 'var(--font-mono)',
+                flexShrink: 0,
+              }}>{badge}</span>
+            )}
+          </NavLink>
+        );
+      })}
 
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '0.66rem',

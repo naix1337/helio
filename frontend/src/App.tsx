@@ -13,6 +13,9 @@ import { LandingPage } from './pages/LandingPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { SetupPage } from './pages/SetupPage.tsx';
 import { Team } from './pages/Team.tsx';
+import { Agents } from './pages/Agents.tsx';
+import { AgentDetail } from './pages/AgentDetail.tsx';
+import { PingMonitor } from './pages/PingMonitor.tsx';
 import { RequireAuth } from './components/RequireAuth.tsx';
 import { RequireSetup } from './components/RequireSetup.tsx';
 
@@ -45,6 +48,9 @@ export default function App() {
               <Route path="alerts" element={<Alerts />} />
               <Route path="settings" element={<Settings />} />
               <Route path="team" element={<Team />} />
+              <Route path="agents" element={<Agents />} />
+              <Route path="agents/:id" element={<AgentDetail />} />
+              <Route path="ping" element={<PingMonitor />} />
             </Route>
           </Route>
         </Route>
