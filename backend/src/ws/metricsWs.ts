@@ -14,7 +14,9 @@ export function attachWebSocket(server: Server): void {
 
   server.on('upgrade', (req: IncomingMessage, socket, head) => {
     const raw = req.url ?? '';
-    if (!raw.startsWith('/ws')) {
+    const pathOnly = raw.split('?')[0];
+    if (pathOnly !== '/ws') {
+      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
       socket.destroy();
       return;
     }
@@ -61,7 +63,7 @@ export function attachWebSocket(server: Server): void {
   }, 30_000);
 }
 
-export function wsBroadcast(msg: { type: string; data?: unknown }): void {
+export function wsBroadcast(msg: Record<string, unknown>): void {
   const payload = JSON.stringify(msg);
   for (const ws of clients) {
     if (ws.readyState === WebSocket.OPEN) {

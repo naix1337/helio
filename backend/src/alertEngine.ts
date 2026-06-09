@@ -2,7 +2,7 @@
 import type { SystemSnapshot, Alert, AlertFireEvent, AlertMetric, AlertOperator } from './types.js';
 import { queries } from './db/index.js';
 
-type BroadcastFn = (msg: { type: string; data: unknown }) => void;
+type BroadcastFn = (msg: Record<string, unknown>) => void;
 let broadcast: BroadcastFn = () => {};
 
 export function setAlertBroadcast(fn: BroadcastFn): void {
