@@ -48,12 +48,12 @@ fi
 
 # ── Step 3: Build frontend ────────────────────────────────────────────────────
 log "Installing & building frontend..."
-npm ci --prefix "$APP_DIR/helio-app/frontend"
+npm install --prefix "$APP_DIR/helio-app/frontend"
 npm run build --prefix "$APP_DIR/helio-app/frontend"
 
 # ── Step 4: Build backend ─────────────────────────────────────────────────────
 log "Installing & building backend..."
-npm ci --prefix "$APP_DIR/helio-app/backend"
+npm install --prefix "$APP_DIR/helio-app/backend"
 npm run build --prefix "$APP_DIR/helio-app/backend"
 
 # ── Step 5: Write PM2 ecosystem and start ─────────────────────────────────────
