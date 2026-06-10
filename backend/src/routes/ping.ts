@@ -6,6 +6,7 @@ import type { PingRequest, PingResult } from '../types.js';
 import type { PingCollector } from '../collectors/pingCollector.js';
 import { computePingStatus } from '../collectors/pingCollector.js';
 import { queries } from '../db/index.js';
+import { requireRole } from '../middleware/auth.js';
 
 // ── PingCollector singleton reference ────────────────────────────────────────
 
@@ -66,8 +67,21 @@ async function httpPing(url: string, timeoutMs: number): Promise<{ latency: numb
 
 // ── Routers ───────────────────────────────────────────────────────────────────
 
+// RFC1918 + loopback + link-local denylist to prevent SSRF-style internal scanning
+const PRIVATE_HOST_RE =
+  /^(localhost|.*\.local)$|^(127\.|10\.|192\.168\.|169\.254\.|0\.|::1|fc00:|fe80:)/i;
+
+function isPrivateHost(host: string): boolean {
+  // Strip port if present (e.g. "192.168.1.1:80")
+  const h = host.split(':')[0].replace(/^\[|\]$/g, '');
+  return PRIVATE_HOST_RE.test(h);
+}
+
 export const pingRouter = Router();
 const targetsRouter = Router();
+
+// Mutations require admin role
+targetsRouter.use(['POST', 'PUT', 'DELETE', 'PATCH'], requireRole('admin'));
 
 // Existing one-shot endpoint (unchanged)
 pingRouter.post('/', async (req, res) => {
@@ -175,6 +189,11 @@ targetsRouter.post('/', async (req, res) => {
     return;
   }
 
+  if (isPrivateHost(host)) {
+    res.status(400).json({ error: 'Private/loopback addresses are not allowed as ping targets' });
+    return;
+  }
+
   const newId = queries.insertPingTarget(name, host, type, port, interval_ms, timeout_ms, tags);
   const newTarget = queries.getPingTarget(newId);
 
@@ -245,6 +264,11 @@ targetsRouter.put('/:id', (req, res) => {
   // Validate interval_ms if provided
   if (interval_ms !== undefined && interval_ms < 5000) {
     res.status(400).json({ error: 'interval_ms must be at least 5000' });
+    return;
+  }
+
+  if (host !== undefined && isPrivateHost(host)) {
+    res.status(400).json({ error: 'Private/loopback addresses are not allowed as ping targets' });
     return;
   }
 

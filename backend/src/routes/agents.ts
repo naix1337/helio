@@ -7,6 +7,9 @@ import type { AgentMetricRow } from '../db/queries.js';
 
 export const agentsRouter = Router();
 
+// Mutations require admin role
+agentsRouter.use(['PUT', 'DELETE', 'PATCH'], requireRole('admin'));
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 interface AgentRow {
