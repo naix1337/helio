@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  helio:
+    build:
+      context: ./helio-app
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - helio-data:/app/data
+      - ./helio-app/backend/src:/app/backend/src
+      - ./helio-app/frontend/src:/app/frontend/src
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - HELIO_DB_PATH=/app/data/helio.db
+    command: npm run dev
+    restart: unless-stopped
+
+volumes:
+  helio-data:
